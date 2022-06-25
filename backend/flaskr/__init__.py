@@ -26,7 +26,13 @@ def create_app(test_config=None):
     Create an endpoint to handle GET requests
     for all available categories.
     """
-
+    def getcar():
+        all_cars = []
+        categories = categories.query.all() 
+        
+      #  for category in categories
+      # 
+      #     
 
     """
     @TODO:
