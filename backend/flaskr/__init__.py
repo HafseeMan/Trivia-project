@@ -9,6 +9,17 @@ from models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10
 
+#Helper method
+def paginate_questions(request, selection):
+    page = request.args.get("page", 1, type=int)
+    start = (page - 1) * QUESTIONS_PER_PAGE
+    end = start + QUESTIONS_PER_PAGE
+
+    questions = [question.format() for question in selection]
+    current_questions = questions[start:end]
+
+    return current_questions
+
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__)
@@ -67,10 +78,23 @@ def create_app(test_config=None):
 
     @app.route('/categories/questions')
     @cross_origin()
-    def get_questions():
-        return jsonify({'message':'DISPLAYING QUESTIONS'})
+    def get_all_questions():
+        ##PAGINATION
+          #To display the first page by default if not specified in url
+        page = request.args.get('page', 1, type=int)
+          #Calculating position of (10) questions to be displayed based on page number
+        start = (page-1) * QUESTIONS_PER_PAGE 
+        end = start + QUESTIONS_PER_PAGE
 
+        questions = Question.query.all()
+        formatted_questions = [question.format() for question in questions]                
 
+        return jsonify({
+            'success':True,
+            'categories': formatted_questions[start:end],
+            'total_questions': len(formatted_questions)           
+            })
+ 
     """
     @TODO:
     Create an endpoint to DELETE question using a question ID.
@@ -78,7 +102,29 @@ def create_app(test_config=None):
     TEST: When you click the trash icon next to a question, the question will be removed.
     This removal will persist in the database and when you refresh the page.
     """
+    @app.route("/questions/<int:question_id>", methods=["DELETE"])
+    @cross_origin()
+    def delete_question(question_id):
+        try:
+            question = Question.query.filter(Question.id == question_id).one_or_none()
+            
+            if question is None:
+               abort(404)
 
+            question.delete()
+            selection = Question.query.order_by(Question.id).all()
+            remaining_questions = paginate_questions(request, selection)
+            
+            return jsonify({
+                "success": True,
+                "deleted": question_id,
+                "questions": remaining_questions,
+                "total_books": len(Question.query.all())
+            })
+            
+        except:
+            abort(422)
+    
     """
     @TODO:
     Create an endpoint to POST a new question,
@@ -89,6 +135,41 @@ def create_app(test_config=None):
     the form will clear and the question will appear at the end of the last page
     of the questions list in the "List" tab.
     """
+    @app.route("/questions", methods=["POST"]) 
+    @cross_origin()
+    def create_question():
+       #Get body from request
+       body = request.get_json()
+
+       new_question = body.get("question", None)
+       new_answer = body.get("answer", None)
+       new_category = body.get("category", None)
+       new_difficulty = body.get("difficulty", None)
+
+       try:
+
+        #Creating book out of new parameters
+        new_question = Question(question=new_question, answer=new_answer, category=new_category, difficulty=new_difficulty)
+        #Adding to database
+        new_question.insert()
+
+        selection = Question.query.order_by(Question.id).all()
+        newset_questions = paginate_questions(request, selection)
+        
+        return jsonify(
+                {
+                    "success": True,
+                    "created": new_question.id,
+                    "books": newset_questions,
+                    "total_books": len(Question.query.all()),
+                }
+            )
+
+       except:
+          abort(422)
+
+
+
 
     """
     @TODO:
@@ -101,6 +182,26 @@ def create_app(test_config=None):
     Try using the word "title" to start.
     """
 
+    @app.route("/questions/search", methods=["POST"])
+    @cross_origin()
+    def search_question():
+
+        body = request.get_json()
+        search = body.get('search', None)
+
+        if search:
+            selection = Question.query.filter(f'%{search}%').all()
+        
+        search_results = paginate_questions(request, selection)
+        
+        return jsonify({
+                "success": True,
+                "questions": search_results,
+                "found_matches": len(selection.all())
+            })
+
+ 
+
     """
     @TODO:
     Create a GET endpoint to get questions based on category.
@@ -109,7 +210,26 @@ def create_app(test_config=None):
     categories in the left column will cause only questions of that
     category to be shown.
     """
+    @app.route('/categories/<int:category_id>/questions')
+    @cross_origin()
+    def get_questions(category_id):
 
+        #Filtering questions under category
+        questions = Question.query.filter(Question.category==category_id)
+
+        formatted_questions = [question.format() for question in questions]                
+
+        #If category not existing
+        if category_id not in [1,2,3,4,5,6]:
+            abort(404)
+        else:
+            return jsonify({
+                'success':True,
+                'categories': formatted_questions,
+                'total_questions': len(formatted_questions),
+                })
+
+  
     """
     @TODO:
     Create a POST endpoint to get questions to play the quiz.
@@ -127,6 +247,38 @@ def create_app(test_config=None):
     Create error handlers for all expected errors
     including 404 and 422.
     """
+   #Error messages to be sent as json to user instead of html page
+    @app.errorhandler(400)#client error
+    def bad_request(error):
+        return jsonify({
+            "success": False,
+            "error":400,
+            "message":"bad request"
+        }), 400
+  
+    @app.errorhandler(404)
+    def not_found(error): #page not found
+        return jsonify({
+            "success": False,
+            "error":404,
+            "message":"Not found"
+        }), 404
+
+    @app.errorhandler(422)
+    def unprocessable(error): #client request syntax not correct
+        return jsonify({
+            "success": False,
+            "error":422,
+            "message":"unprocessable"
+        }), 422
+
+    @app.errorhandler(500)
+    def unexpected(error): 
+        return jsonify({
+            "success": False,
+            "error":500,
+            "message":"Unexpected condition"
+        }), 500
 
     if __name__ == '__main__':
         app.run(debug=True)
