@@ -160,8 +160,8 @@ def create_app(test_config=None):
                 {
                     "success": True,
                     "created": new_question.id,
-                    "books": newset_questions,
-                    "total_books": len(Question.query.all()),
+                    "questions": newset_questions,
+                    "total_questions": len(Question.query.all()),
                 }
             )
 
