@@ -47,10 +47,6 @@ def create_app(test_config=None):
     Create an endpoint to handle GET requests
     for all available categories.
     """
-    @app.route('/')
-    def main():
-        return jsonify({"message": "Welcome to my hooooood"})
-
 
     @app.route('/categories')
     @cross_origin()
@@ -88,11 +84,20 @@ def create_app(test_config=None):
 
         questions = Question.query.all()
         formatted_questions = [question.format() for question in questions]                
+        
+        # get all categories and add to dict
+        categories = Category.query.all()
+        categories_dict = {}
+        
+        for category in categories:
+            categories_dict[category.id] = category.type
+
 
         return jsonify({
             'success':True,
-            'categories': formatted_questions[start:end],
-            'total_questions': len(formatted_questions)           
+            'categories': categories_dict,
+            'total_questions': len(formatted_questions),           
+            'questions': formatted_questions[start:end],
             })
  
     """
@@ -182,7 +187,7 @@ def create_app(test_config=None):
     Try using the word "title" to start.
     """
 
-    @app.route("/questions/search", methods=["POST"])
+    @app.route('/questions/search', methods=["POST"])
     @cross_origin()
     def search_question():
 
@@ -218,14 +223,23 @@ def create_app(test_config=None):
 
         formatted_questions = [question.format() for question in questions]                
 
+        # get all categories and add to dict
+        categories = Category.query.all()
+        categories_dict = {}
+
+        for category in categories:
+            categories_dict[category.id] = category.type        
+
         #If category not existing
-        if category_id not in [1,2,3,4,5,6]:
+        if category_id not in categories_dict:
             abort(404)
         else:
             return jsonify({
                 'success':True,
-                'categories': formatted_questions,
+                'questions': formatted_questions,
                 'total_questions': len(formatted_questions),
+                'categories': categories_dict,
+                'current_category':  category_id
                 })
 
   
@@ -240,6 +254,68 @@ def create_app(test_config=None):
     one question at a time is displayed, the user is allowed to answer
     and shown whether they were correct or not.
     """
+    @app.route('/quizzes', methods=['POST'])
+    @cross_origin()
+    def get_random_quiz_question():
+        '''
+        Handles POST requests for playing quiz.
+        '''
+
+        # load the request body
+        body = request.get_json()
+
+        # get the previous questions
+        previous = body.get('previous_questions')
+
+        # get the category
+        category = body.get('quiz_category')
+
+        # abort 400 if category or previous questions isn't found
+        if ((category is None) or (previous is None)):
+            abort(400)
+
+        # load questions all questions if "ALL" is selected
+        if (category['id'] == 0):
+            questions = Question.query.all()
+        # load questions for given category
+        else:
+            questions = Question.query.filter_by(category=category['id']).all()
+
+        # get total number of questions
+        total = len(questions)
+
+        # picks a random question
+        def get_random_question():
+            return questions[random.randrange(0, len(questions), 1)]
+
+        # checks to see if question has already been used
+        def check_if_used(question):
+            used = False
+            for q in previous:
+                if (q == question.id):
+                    used = True
+
+            return used
+
+        # get random question
+        question = get_random_question()
+
+        # check if used, execute until unused question found
+        while (check_if_used(question)):
+            question = get_random_question()
+
+            # if all questions have been tried, return without question
+            # necessary if category has <5 questions
+            if (len(previous) == total):
+                return jsonify({
+                    'success': True
+                })
+
+        # return the question
+        return jsonify({
+            'success': True,
+            'question': question.format()
+        })
 
     """
     @TODO:
