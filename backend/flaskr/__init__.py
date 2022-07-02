@@ -186,20 +186,19 @@ def create_app(test_config=None):
     @cross_origin()
     def search_question():
 
+        # get the request and search term
         body = request.get_json()
-        search = body.get('search', None)
+        search_term = body.get('search')
 
-        if search:
-            selection = Question.query.filter(f'%{search}%').all()
-        
-        search_results = paginate_questions(request, selection)
-        
+        selection = Question.query.filter(Question.question.ilike(f'%{search_term}%')).all()
+
+        paginated = paginate_questions(request, selection)
+
         return jsonify({
-                "success": True,
-                "questions": search_results,
-                "found_matches": len(selection.all())
-            })
-
+            'success': True,
+            'questions': paginated,
+            'total_match': len(selection)
+        })
  
 
     """
