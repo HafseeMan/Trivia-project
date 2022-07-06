@@ -6,6 +6,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS, cross_origin
 import random
 
+from sqlalchemy import false
+
 from models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10
@@ -31,15 +33,13 @@ def create_app(test_config=None):
     """
     #NB: Access-control-.. allows a domain to access an API database
     CORS(app)
-    #CORS(app, resources={r"/api/*": {"origins": "*"}})
-
-    #CORS Headers
     
     """
     @TODO: Use the after_request decorator to set Access-Control-Allow
     """
     @app.after_request
     def after_request(response):
+        #CORS Headers
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,true')
         response.headers.add('Access-Control-Allow-Methods', 'GET,PATCH,POST,DELETE,OPTIONS')
         return response
@@ -52,7 +52,10 @@ def create_app(test_config=None):
     @app.route('/categories')
     @cross_origin()
     def get_categories():
+        #retrieve categories from database
         categories = Category.query.all()
+        #Changing formatting from {"id":1, "type":"science"} to {1:"science"}  
+        # as expected by frontend
         formatted_categories = {category.id:category.type for category in categories}
 
         return jsonify({
@@ -77,14 +80,14 @@ def create_app(test_config=None):
     @app.route('/questions')
     @cross_origin()
     def get_all_questions():
-
+        #Retrieving questions in database
         selection = Question.query.all()
         # paginate the results
         paginated = paginate_questions(request, selection)
-        # get all categories and add to dict
+        # get all categories from database and adding dictionary
         categories = Category.query.all()
         categories_dict = {}
-        
+
         for category in categories:
             categories_dict[category.id] = category.type
 
@@ -107,6 +110,7 @@ def create_app(test_config=None):
     @cross_origin()
     def delete_question(question_id):
         try:
+            #Finding targeted question object in database
             question = Question.query.filter(Question.id == question_id).one_or_none()
             
             if question is None:
@@ -168,7 +172,7 @@ def create_app(test_config=None):
             # paginate the results
             paginated = paginate_questions(request, selection)
 
-            # return results
+        
             return jsonify({
                 'success': True,
                 'questions': paginated,
@@ -197,7 +201,6 @@ def create_app(test_config=None):
                 selection = Question.query.order_by(Question.id).all()
                 current_questions = paginate_questions(request, selection)
 
-                # return data to view
                 return jsonify({
                     'success': True,
                     'created': question.id,
@@ -207,7 +210,7 @@ def create_app(test_config=None):
                 })
 
             except:
-                # abort unprocessable if exception
+                # abort unprocessable if error
                 abort(422)
 
 
@@ -262,69 +265,55 @@ def create_app(test_config=None):
     """
     @app.route('/quizzes', methods=['POST'])
     @cross_origin()
-    def play_quiz():
+    def play():
         '''
         Handles POST requests for playing quiz.
         '''
-
         # load the request body
         body = request.get_json()
         try:
-            # get the previous questions
-            previous = body.get('previous_questions')
-            # get the category
+            # get the previous questions and category
+            previous_questions = body.get('previous_questions')
             category = body.get('quiz_category')
-            random_question= None
 
-            # abort 400 if category or previous questions isn't found
-            if ((category is None) or (previous is None)):
-                abort(400)
-
-            # load questions all questions if "ALL" is selected
+            # load questions 
             if (category['id'] == 0):
                 questions = Question.query.all()
-            # load questions for given category
             else:
                 questions = Question.query.filter_by(category=category['id']).all()
 
-            # get total number of questions
-            total = len(questions)
-
-            # picks a random question
-            def get_random_question():
-                return questions[random.randrange(0, len(questions), 1)]
-
-            # checks to see if question has already been used
-            def check_if_used(question):
+            # function to check if question is a previous question
+            def not_used(question):
                 used = False
-                for q in previous:
-                    if (q == question.id):
+                for x in previous_questions:
+                    if (x == question.id):
                         used = True
 
                 return used
 
-            # get random question
-            question = get_random_question()
+            # function that picks a random question
+            def get_random():
+                return questions[random.randrange(0, len(questions), 1)]
 
-            # check if used, execute until unused question found
-            while (check_if_used(question)):
-                question = get_random_question()
+            # get random question first time
+            question = get_random()
 
-                # if all questions have been tried, return without question
-                # necessary if category has <5 questions
-                if (len(previous) == total):
+            # loop to find unused question after first time
+            while(not_used(question)):
+                question = get_random()
+
+                # if all questions have been tried
+                if (len(previous_questions) == len(questions)):
                     return jsonify({
                         'success': True
                     })
 
-            # return the question
             return jsonify({
                 'success': True,
                 'question': question.format(),
-                'previous_questions': previous
+                'previous_questions': previous_questions
             })
         except:
-            # abort unprocessable if exception
             abort(422)
     """
     @TODO:
