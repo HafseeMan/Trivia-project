@@ -143,7 +143,7 @@ It includes endpoints to display questions, delete, search and play trivia based
 - General:
     - Gets questions based on a search term. It would return any questions for whom the search term
     is a substring of the question, the total matches in list and success value.
--  `curl http://127.0.0.1:5000/questions -X POST -H "Content-Type: application/json" -d '{"search": "title"}'`
+-  `curl http://127.0.0.1:5000/questions -X POST -H "Content-Type: application/json" -d '{"searchTerm": "title"}'`
 ```
 {
   "questions": [

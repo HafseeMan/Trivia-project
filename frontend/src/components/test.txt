@@ -1,0 +1,47 @@
+    def create_question():
+        body = request.get_json()
+        try:
+            new_question = body.get("question", None)
+            new_question = body.get("question", None)
+            new_answer = body.get("answer", None)
+            new_category = body.get("category", None)
+            new_difficulty = body.get("difficulty", None)
+
+            search_term = body.get("searchTerm", None)
+
+            if (new_question == '' or new_answer=='') and search_term is None:
+                abort(422)
+            
+            #for search 
+            if search_term:
+                questions_selection = Question.query.order_by(Question.id).filter(Question.question.ilike("%{}%".format(search_term))).all()
+                questions = paginate_questions(request, questions_selection)
+
+                return jsonify({
+                    'success': True,
+                    'created': new_question.id,
+                    'total_questions': len(questions_selection),
+                    'questions': questions,                        
+                })
+            
+            else:
+                #Creating book out of new parameters
+                new_question = Question(question=new_question, answer=new_answer, category=new_category, difficulty=new_difficulty)
+                #Adding to database
+                new_question.insert()
+
+                selection = Question.query.order_by(Question.id).all()
+                newset_questions = paginate_questions(request, selection)
+                    
+                return jsonify(
+                            {
+                                'success': True,
+                                'created': new_question.id,
+                                'question_created': new_question.question,
+                                'questions': newset_questions,
+                                'total_questions': len(Question.query.all())
+                            }
+                )
+        except:
+            abort(422)
+

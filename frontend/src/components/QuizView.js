@@ -21,7 +21,7 @@ class QuizView extends Component {
 
   componentDidMount() {
     $.ajax({
-      url: `http://127.0.0.1:5000/categories`, //TODO: update request URL
+      url: `/categories`, //TODO: update request URL
       type: 'GET',
       success: (result) => {
         this.setState({ categories: result.categories });
@@ -49,7 +49,7 @@ class QuizView extends Component {
     }
 
     $.ajax({
-      url: 'http://127.0.0.1:5000/categories/quizzes', //TODO: update request URL
+      url: '/quizzes', //TODO: update request URL
       type: 'POST',
       dataType: 'json',
       contentType: 'application/json',
@@ -143,11 +143,8 @@ class QuizView extends Component {
     const formatGuess = this.state.guess
       // eslint-disable-next-line
       .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
-      .toString()
       .toLowerCase();
-      
     const answerArray = this.state.currentQuestion.answer
-      .toString()
       .toLowerCase()
       .split(' ');
     return answerArray.every((el) => formatGuess.includes(el));
