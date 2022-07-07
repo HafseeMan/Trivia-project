@@ -1,5 +1,5 @@
 .App-header {
-  background-color: #222;
+  background-color: rgb(54, 49, 49);
   color: white;
   display: flex;
   justify-content: space-between;
@@ -10,6 +10,11 @@
 }
 
 .App-header > h1 {
+  color: rgb(149, 162, 233);
+  font-family: 'Verdana, Geneva, Tahoma, sans-serif' !important;
+}
+
+.App-header > h2:hover{
   color: dodgerblue;
 }
 

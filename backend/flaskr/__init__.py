@@ -1,10 +1,13 @@
+from curses import raw
 from distutils.log import debug
+import json
 import os
 from unicodedata import category
 from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS, cross_origin
 import random
+from matplotlib.style import available
 
 from sqlalchemy import false
 
@@ -266,55 +269,47 @@ def create_app(test_config=None):
     @app.route('/quizzes', methods=['POST'])
     @cross_origin()
     def play():
-        '''
-        Handles POST requests for playing quiz.
-        '''
         # load the request body
         body = request.get_json()
+        # get the previous questions and category
+        previous_questions = body.get('previous_questions')
+        category = body.get('quiz_category')
+
         try:
-            # get the previous questions and category
-            previous_questions = body.get('previous_questions')
-            category = body.get('quiz_category')
-
-            # load questions 
-            if (category['id'] == 0):
-                questions = Question.query.all()
+            # -- load questions
+            # if category specified 
+            if (category and category['id'] != 0):
+                #Filter out questions not included in previous_questions array
+                questions_raw = (Question.query
+                .filter(Question.category == str(category['id']))
+                .all())
+            #if category not specified
             else:
-                questions = Question.query.filter_by(category=category['id']).all()
+                #Filter out questions not included in previous_questions array
+                questions_raw = (Question.query
+                .filter(Question.id.notin_(previous_questions))
+                .all())   
 
-            # function to check if question is a previous question
-            def not_used(question):
-                used = False
-                for x in previous_questions:
-                    if (x == question.id):
-                        used = True
+            #If all questions are used, return without question to end game
+            if len(questions_raw) == 0:
+                return jsonify({
+                    'success': True,
+                })           
 
-                return used
-
-            # function that picks a random question
-            def get_random():
-                return questions[random.randrange(0, len(questions), 1)]
-
-            # get random question first time
-            question = get_random()
-
-            # loop to find unused question after first time
-            while(not_used(question)):
-                question = get_random()
-
-                # if all questions have been tried
-                if (len(previous_questions) == len(questions)):
-                    return jsonify({
-                        'success': True
-                    })
+            # Format questions & get a random question
+            questions_formatted = [question.format() for question in questions_raw]
+            random_question = random.choice(questions_formatted)
 
             return jsonify({
                 'success': True,
-                'question': question.format(),
+                'question': random_question,
                 'previous_questions': previous_questions
             })
+
         except:
+            # abort unprocessable if error
             abort(422)
+  
     """
     @TODO:
     Create error handlers for all expected errors

@@ -139,7 +139,7 @@ It includes endpoints to display questions, delete, search and play trivia based
 }
 ```
 
-#### POST /questions/search
+#### POST /questions
 - General:
     - Gets questions based on a search term. It would return any questions for whom the search term
     is a substring of the question, the total matches in list and success value.
@@ -211,6 +211,24 @@ It includes endpoints to display questions, delete, search and play trivia based
   "total_questions": 4
 }
 ```
+#### POST /quizzes
+- General: Gets questions to play the quiz. This endpoint should take category and previous question parameters
+  and return a random questions within the given category, if provided, and that is not one of the previous questions.
+- Example: `curl -X POST "Content-Type: application/json" -d '{"previous-questions": [2,6], "quiz_category":{"type":"Entertainment", "id":"5"}}' http://127.0.0.1:5000/quizzes`
+- 
+```
+{
+  "question": {
+    "answer":"Tom Cruise",
+    "category": 5,
+    "difficulty": 4,
+    "id": 4,
+    "question": "What actor did Anne Rice first denounce, then praise in the role of her beloved Lestat?"
+  },
+  "success": true
+}
+```
+
 
 ## Error Handling
 Errors are returned as JSON objects in the following format:
