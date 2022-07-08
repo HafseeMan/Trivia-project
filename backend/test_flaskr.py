@@ -16,12 +16,11 @@ class TriviaTestCase(unittest.TestCase):
         self.app = create_app()
         self.client = self.app.test_client
         self.database_name = "trivia_test"
-
+        
         #setting up secrets from virtual environment
         self.database_user = os.getenv("DB_USER")
         self.database_password = os.getenv("DB_PASSWORD")
-        self.database_path = 'postgresql://{}:{}@{}/{}'.format(self.database_user, self.database_password,'localhost:5432', self.database_name)
-
+        self.database_path = 'postgresql://{}:{}@{}/{}'.format(self.database_user, self.database_password, 'localhost:5432', self.database_name)
         setup_db(self.app, self.database_path)
 
 
@@ -47,7 +46,7 @@ class TriviaTestCase(unittest.TestCase):
     """
     TODO
     Write at least one test for each test for successful operation and for expected errors.
-    """
+    """ 
     #---------- GET Categories ----------
     #  Success
     def test_get_categories(self):
@@ -84,7 +83,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data['success'], True)
         self.assertTrue(data['total_questions'])
         self.assertTrue(len(data['questions']))
-   
+
     #   Fail
     def test_404_request_beyond_valid_page(self):
         #condition  
@@ -95,7 +94,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 404)
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], 'Not found')
-
+    
     #---------- DELETE Questions  ----------
     # Success
         
@@ -113,6 +112,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertTrue(data["total_questions"])
         self.assertTrue(len(data["questions"]))
         self.assertEqual(question, None)
+    
     # Fail
     def test_422_if_question_does_not_exist(self):
         # Success
@@ -123,7 +123,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 422)
         self.assertEqual(data["success"], False)
         self.assertEqual(data["message"], "unprocessable")
-
+    
     #---------- POST new Question  ----------
     # Success
     def test_create_new_question(self):
@@ -137,6 +137,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertTrue(data["created"])
         self.assertTrue(data["question_created"])
         self.assertTrue(len(data["questions"]))
+    
     # Fail
     def test_404_if_question_creation_not_valid(self):
         res = self.client().post("/books/45", json={"answer": "Repunzul"})
@@ -148,7 +149,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data["success"], False)
         self.assertEqual(data["message"], "Not found")    
 
-
+    
     #---------- POST search Question  ----------
     # Success
     def test_search_questions(self):
@@ -162,6 +163,7 @@ class TriviaTestCase(unittest.TestCase):
 
         # check if one of correct matches is included in response
         self.assertEqual(data['questions'][0]['id'], 5)
+    
     # Fail
     def test_404_if_search_questions_fails(self):
         response = self.client().post('/questions',
@@ -175,7 +177,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data['success'], False)
         self.assertEqual(data['message'], 'Not found')
 
-
+    
     #---------- GET Questions (based on category) ----------
     #   Success   
     def test_get_questions_by_category(self):
@@ -187,7 +189,7 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(data['success'], True)
         self.assertNotEqual(len(data['questions']), 0)
-
+    
     # Fail
     def test_400_if_questions_by_category_fails(self):
         #condition

@@ -15,17 +15,6 @@ from models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10
 
-#Helper method
-def paginate_questions(request, selection):
-    page = request.args.get("page", 1, type = int)
-    start = (page - 1)*QUESTIONS_PER_PAGE
-    end = start + QUESTIONS_PER_PAGE
-
-    questions = [question.format() for question in selection]
-    current_questions = questions[start:end]
-
-    return current_questions
-
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__)
@@ -46,6 +35,20 @@ def create_app(test_config=None):
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,true')
         response.headers.add('Access-Control-Allow-Methods', 'GET,PATCH,POST,DELETE,OPTIONS')
         return response
+    
+    #Helper method
+    # --- ten questions per page and pagination at the bottom of the screen
+    def paginate_questions(request, selection):
+        # Get page from request. If not given, default to 1
+        page = request.args.get("page", 1, type = int)
+        start = (page - 1)*QUESTIONS_PER_PAGE
+        end = start + QUESTIONS_PER_PAGE
+        #retrieve questions 
+        questions = [question.format() for question in selection]
+        show_questions = questions[start:end]
+
+        return show_questions
+    
     """
     @TODO:
     Create an endpoint to handle GET requests
@@ -61,8 +64,8 @@ def create_app(test_config=None):
         # as expected by frontend
         formatted_categories = {category.id:category.type for category in categories}
 
-        # abort 404 if no categories found
-        if (len(formatted_categories) == 0 or not categories or categories == None):
+        # Error if no category found
+        if not categories:
             abort(404)
 
         return jsonify({
@@ -125,6 +128,7 @@ def create_app(test_config=None):
             #Finding targeted question object in database
             question = Question.query.filter(Question.id == question_id).one_or_none()
             
+            #Error if targetted question not found
             if question is None:
                abort(422)
 
@@ -167,48 +171,48 @@ def create_app(test_config=None):
     @app.route("/questions", methods=["POST"]) 
     @cross_origin()
     def create_or_search_question():
-        '''
-        Handles POST requests for creating new questions and searching questions.
-        '''
-        # load the request body
         body = request.get_json()
+        search_term = body.get('searchTerm', None)
 
-        # if search term is present
-        if (body.get('searchTerm')):
-            search_term = body.get('searchTerm')
-
+        # if search term included
+        if (search_term):
             # 404 if search body empty
             if search_term is None:
                 abort(404)
-
+            #filtering by search_term
             selection = Question.query.filter(
                 Question.question.ilike(f'%{search_term}%')).all()
+            
+            #Paginate for display depending on number of matches
+            if (len(selection) > QUESTIONS_PER_PAGE):    
+                result = paginate_questions(request, selection)
+            else:
+                result = [question.format() for question in selection]
 
-            # paginate the results
-            paginated = paginate_questions(request, selection)
-        
             return jsonify({
                 'success': True,
-                'questions': paginated,
+                'questions': result,
                 'total_questions': len(Question.query.all())
             })
-        # if no search term, create new question
+        # otherwise create new question
         else:
-            # load data from body
+            #Get field info
             new_question = body.get('question')
             new_answer = body.get('answer')
             new_difficulty = body.get('difficulty')
             new_category = body.get('category')
 
-            # ensure all fields have data
-            if ((new_question is None) or (new_answer is None)
-                    or (new_difficulty is None) or (new_category is None)):
+            # Error if any of the fields are missing 
+            if (not new_question or not new_answer 
+                or not new_difficulty or not new_category):
                 abort(404)
 
             try:
                 # create and insert new question
-                question = Question(question=new_question, answer=new_answer,
-                                    difficulty=new_difficulty, category=new_category)
+                question = Question(question = new_question, 
+                                    answer = new_answer,
+                                    difficulty=new_difficulty, 
+                                    category=new_category)
                 question.insert()
 
                 # get all questions and paginate
@@ -226,8 +230,6 @@ def create_app(test_config=None):
             except:
                 # abort unprocessable if error
                 abort(422)
-
-
 
     """
     @TODO:
