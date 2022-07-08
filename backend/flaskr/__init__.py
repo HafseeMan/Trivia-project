@@ -61,6 +61,10 @@ def create_app(test_config=None):
         # as expected by frontend
         formatted_categories = {category.id:category.type for category in categories}
 
+        # abort 404 if no categories found
+        if (len(formatted_categories) == 0 or not categories or categories == None):
+            abort(404)
+
         return jsonify({
             'success':True,
             'categories': formatted_categories,           
@@ -87,6 +91,11 @@ def create_app(test_config=None):
         selection = Question.query.all()
         # paginate the results
         paginated = paginate_questions(request, selection)
+
+        #Error if no questions found
+        if len(paginated) == 0:
+            abort(404)
+
         # get all categories from database and adding dictionary
         categories = Category.query.all()
         categories_dict = {}
@@ -117,7 +126,7 @@ def create_app(test_config=None):
             question = Question.query.filter(Question.id == question_id).one_or_none()
             
             if question is None:
-               abort(404)
+               abort(422)
 
             question.delete()
             selection = Question.query.all()
@@ -127,7 +136,7 @@ def create_app(test_config=None):
                 "success": True,
                 "deleted": question_id,
                 "questions": remaining_questions,
-                "total_books": len(Question.query.all())
+                "total_questions": len(Question.query.all())
             })
             
         except:
@@ -157,7 +166,7 @@ def create_app(test_config=None):
 
     @app.route("/questions", methods=["POST"]) 
     @cross_origin()
-    def add_search_question():
+    def create_or_search_question():
         '''
         Handles POST requests for creating new questions and searching questions.
         '''
@@ -168,13 +177,15 @@ def create_app(test_config=None):
         if (body.get('searchTerm')):
             search_term = body.get('searchTerm')
 
-            # query the database using search term
+            # 404 if search body empty
+            if search_term is None:
+                abort(404)
+
             selection = Question.query.filter(
                 Question.question.ilike(f'%{search_term}%')).all()
 
             # paginate the results
             paginated = paginate_questions(request, selection)
-
         
             return jsonify({
                 'success': True,
@@ -192,7 +203,7 @@ def create_app(test_config=None):
             # ensure all fields have data
             if ((new_question is None) or (new_answer is None)
                     or (new_difficulty is None) or (new_category is None)):
-                abort(422)
+                abort(404)
 
             try:
                 # create and insert new question
@@ -244,7 +255,7 @@ def create_app(test_config=None):
 
         #If category not existing
         if category_id not in categories_arr:
-            abort(404)
+            abort(400)
         else:
             return jsonify({
                 'success':True,
@@ -268,7 +279,7 @@ def create_app(test_config=None):
     """
     @app.route('/quizzes', methods=['POST'])
     @cross_origin()
-    def play():
+    def play_quiz():
         # load the request body
         body = request.get_json()
         # get the previous questions and category
