@@ -4,7 +4,77 @@
 
 ### About
 An API used to create Trivia games and quizzes. 
-It includes endpoints to display questions, delete, search and play trivia based on a specified category. 
+It includes endpoints to display questions, delete, search and play trivia questions randomly based on a specified category. 
+
+## Getting Started
+
+### Pre-requisites
+Developers using this project should already have Python3, pip, node, and npm installed.
+
+#### Frontend Dependencies
+
+This project uses NPM to manage software dependencies. From the`frontend` directory of this repository. After cloning, open your terminal and run:
+
+```bash
+npm install  # <--- when running the first time
+npm start
+```
+
+#### Starting Virtual environment
+From `/backend` folder run:
+```bash
+# Mac users
+python3 -m venv venv
+source venv/bin/activate
+# Windows users
+> py -3 -m venv venv
+> venv\Scripts\activate
+```
+
+
+#### Backend Dependencies
+
+After setting up your virtual environment setup and running, install dependencies by naviging to the `/backend` directory and running:
+
+```bash
+# All required packages are included in the requirements file. 
+pip install -r requirements.txt
+```
+
+## Running the Frontend in Dev Mode
+
+The frontend app was built using create-react-app. In order to run the app in development mode use ```npm start```. You can change the script in the ```package.json``` file. 
+
+Open [http://localhost:3000](http://localhost:3000) to view it in the browser. The page will reload if you make edits.<br>
+
+```bash
+npm start
+```
+
+## Running the Server
+
+From the `backend` directory first ensure you are working using your created virtual environment.
+
+To run the server:
+
+```bash
+export FLASK_APP=flaskr
+export FLASK_ENV=development
+flask run
+```
+
+## Testing
+To deploy the tests, run
+
+```bash
+dropdb trivia_test
+createdb trivia_test
+psql trivia_test < trivia.psql
+python test_flaskr.py
+```
+
+NB: don't include dropdb the first time running the command.
+
 
 ## API Reference
 

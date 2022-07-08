@@ -16,7 +16,12 @@ class TriviaTestCase(unittest.TestCase):
         self.app = create_app()
         self.client = self.app.test_client
         self.database_name = "trivia_test"
-        self.database_path = 'postgresql://{}:{}@{}/{}'.format('postgres','1234','localhost:5432', self.database_name)
+
+        #setting up secrets from virtual environment
+        self.database_user = os.getenv("DB_USER")
+        self.database_password = os.getenv("DB_PASSWORD")
+        self.database_path = 'postgresql://{}:{}@{}/{}'.format(self.database_user, self.database_password,'localhost:5432', self.database_name)
+
         setup_db(self.app, self.database_path)
 
 
@@ -56,15 +61,16 @@ class TriviaTestCase(unittest.TestCase):
         self.assertTrue(data["categories"])
         self.assertTrue(data["total_categories"])
     # Fail
-    
-    def test_404_get_categories_fail(self):
-        res = self.client().get("/categories")
-        data = json.loads()
+    def test_error_404_get_categories(self):
+        #condition
+        res = self.client().patch('/categories/1')
+        data = json.loads(res.data)
 
+        # check status code and message
         self.assertEqual(res.status_code, 404)
-        self.assertEqual(data["success"], False)
-        self.assertEqual(data["categories"], None)
-        self.assertEqual(data["message"], "Not found")
+        self.assertEqual(data['error'], 404)
+        self.assertEqual(data['message'], "Not found")
+        self.assertEqual(data['success'], False)
 
     #---------- GET Questions (paginated) ----------
     #   Success
@@ -92,17 +98,18 @@ class TriviaTestCase(unittest.TestCase):
 
     #---------- DELETE Questions  ----------
     # Success
+        
     def test_delete_question(self):
         #condtion
-        res = self.client().delete("/questions/11")
+        res = self.client().delete("/questions/17")
         data = json.loads(res.data)
         #return question from database
-        question = Question.query.filter(Question.id == 10).one_or_none()
+        question = Question.query.filter(Question.id == 17).one_or_none()
         
         # check status code and message
         self.assertEqual(res.status_code, 200)
         self.assertEqual(data["success"], True)
-        self.assertEqual(data["deleted"], 11)
+        self.assertEqual(data["deleted"], 17)
         self.assertTrue(data["total_questions"])
         self.assertTrue(len(data["questions"]))
         self.assertEqual(question, None)
